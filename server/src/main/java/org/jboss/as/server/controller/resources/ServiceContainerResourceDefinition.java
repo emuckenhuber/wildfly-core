@@ -27,11 +27,14 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SER
 
 import java.util.List;
 
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.server.controller.descriptions.ServerDescriptions;
 import org.jboss.as.server.operations.DumpServicesHandler;
 
@@ -41,7 +44,7 @@ import org.jboss.as.server.operations.DumpServicesHandler;
  * @author Brian Stansberry (c) 2013 Red Hat Inc.
  */
 
-class ServiceContainerResourceDefinition extends SimpleResourceDefinition {
+class ServiceContainerResourceDefinition extends SimpleResourceDefinition implements ResourceFactoryDescription {
 
     private final List<AccessConstraintDefinition> accessConstraints;
 
@@ -49,6 +52,16 @@ class ServiceContainerResourceDefinition extends SimpleResourceDefinition {
         super(PathElement.pathElement(CORE_SERVICE, SERVICE_CONTAINER),
                 ServerDescriptions.getResourceDescriptionResolver("core", SERVICE_CONTAINER));
         this.accessConstraints = SensitiveTargetAccessConstraintDefinition.SERVICE_CONTAINER.wrapAsList();
+    }
+
+    @Override
+    public boolean registerByDefault() {
+        return true;
+    }
+
+    @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        return DEFAULT.createResource(pathElement);
     }
 
     @Override

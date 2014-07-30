@@ -44,12 +44,14 @@ import org.jboss.as.controller.ExtensionContext;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.ModelVersionRange;
 import org.jboss.as.controller.OperationDefinition;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.ProxyController;
 import org.jboss.as.controller.ResourceDefinition;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.RunningMode;
 import org.jboss.as.controller.RunningModeControl;
 import org.jboss.as.controller.SubsystemRegistration;
@@ -78,6 +80,8 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.NotificationEntry;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.controller.registry.ResourceFactory;
+import org.jboss.as.controller.registry.ResourceProvider;
 import org.jboss.as.controller.services.path.PathManager;
 import org.jboss.as.controller.transform.CombinedTransformer;
 import org.jboss.as.controller.transform.OperationTransformer;
@@ -672,6 +676,21 @@ public class ExtensionRegistry {
                                                          final ManagementResourceRegistration subdeployments) {
             this.deployments = deployments;
             this.subdeployments = subdeployments;
+        }
+
+        @Override
+        public Resource createResource(PathElement pathElement) throws OperationFailedException {
+            return ResourceFactory.DEFAULT.createResource(pathElement);
+        }
+
+        @Override
+        public ManagementResourceRegistration registerRuntimeModel(ResourceDefinition resourceDefinition, ResourceProvider resourceProvider) {
+            throw new RuntimeException();
+        }
+
+        @Override
+        public ManagementResourceRegistration registerSubModel(ResourceDefinition resourceDefinition, ResourceFactoryDescription resourceFactory) {
+            return registerSubModel(resourceDefinition, ResourceFactoryDescription.DEFAULT);
         }
 
         @Override

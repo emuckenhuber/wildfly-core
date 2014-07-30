@@ -23,8 +23,6 @@
 package org.jboss.as.controller;
 
 import static java.security.AccessController.doPrivileged;
-import static org.jboss.as.controller.logging.ControllerLogger.MGMT_OP_LOGGER;
-import static org.jboss.as.controller.logging.ControllerLogger.ROOT_LOGGER;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ACCESS_MECHANISM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ACTIVE_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ALLOW_RESOURCE_SERVICE_RESTART;
@@ -42,6 +40,8 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PRO
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESPONSE_HEADERS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ROLLBACK_ON_RUNTIME_FAILURE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVICE;
+import static org.jboss.as.controller.logging.ControllerLogger.MGMT_OP_LOGGER;
+import static org.jboss.as.controller.logging.ControllerLogger.ROOT_LOGGER;
 
 import java.io.IOException;
 import java.security.AccessControlContext;
@@ -155,6 +155,12 @@ class ModelControllerImpl implements ModelController {
         this.auditLogger = auditLogger;
         this.hostServerGroupTracker = processType.isManagedDomain() ? new HostServerGroupTracker() : null;
         this.modelControllerResource = new ModelControllerResource();
+        try {
+            // Create the root model, initModel() runs before boot
+            model.set(getRootRegistration().createResource(null));
+        } catch (OperationFailedException e) {
+            throw new RuntimeException(e);
+        }
         auditLogger.startBoot();
     }
 

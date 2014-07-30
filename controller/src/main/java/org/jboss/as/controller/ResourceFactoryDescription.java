@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2011, Red Hat, Inc., and individual contributors
+ * Copyright 2014, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -20,23 +20,34 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.platform.mbean;
+package org.jboss.as.controller;
 
-import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.controller.registry.ResourceFactory;
 
 /**
- * Utility for registering platform mbean resources with a parent resource registration (either a server
- * or host level registration.)
- *
- * @author Brian Stansberry (c) 2011 Red Hat Inc.
+ * @author Emanuel Muckenhuber
  */
-public class PlatformMBeanResourceRegistrar {
+public interface ResourceFactoryDescription extends ResourceFactory {
 
-    public static void registerPlatformMBeanResources(final ManagementResourceRegistration parent) {
-        parent.registerSubModel(PlatformMBeanResourceDefinition.INSTANCE, PlatformMBeanResourceDefinition.INSTANCE);
+    /**
+     * Whether this resource should automatically get registered when the parent gets created. This basically does not
+     * require
+     *
+     * @return {@code true} if the resource should be registered by default, {@code false} otherwise
+     */
+    boolean registerByDefault();
 
-    }
+    ResourceFactoryDescription DEFAULT = new ResourceFactoryDescription() {
+        @Override
+        public boolean registerByDefault() {
+            return false;
+        }
 
-    private PlatformMBeanResourceRegistrar() {
-    }
+        @Override
+        public Resource createResource(PathElement pathElement) throws OperationFailedException {
+            return ResourceFactory.DEFAULT.createResource(pathElement);
+        }
+    };
+
 }

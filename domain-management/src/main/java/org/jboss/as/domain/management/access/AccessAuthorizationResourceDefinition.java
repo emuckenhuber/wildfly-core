@@ -30,7 +30,9 @@ import java.util.List;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ListAttributeDefinition;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
@@ -54,7 +56,7 @@ import org.jboss.dmr.ModelType;
  *
  * @author <a href="mailto:darran.lofthouse@jboss.com">Darran Lofthouse</a>
  */
-public class AccessAuthorizationResourceDefinition extends SimpleResourceDefinition {
+public class AccessAuthorizationResourceDefinition extends SimpleResourceDefinition implements ResourceFactoryDescription {
 
     public static final PathElement PATH_ELEMENT = PathElement.pathElement(ACCESS, AUTHORIZATION);
 
@@ -124,6 +126,16 @@ public class AccessAuthorizationResourceDefinition extends SimpleResourceDefinit
         isDomain = domain;
         isHostController = hostController;
         this.accessConstraints = SensitiveTargetAccessConstraintDefinition.ACCESS_CONTROL.wrapAsList();
+    }
+
+    @Override
+    public boolean registerByDefault() {
+        return true;
+    }
+
+    @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        return createResource(configurableAuthorizer.getWritableAuthorizerConfiguration());
     }
 
     @Override

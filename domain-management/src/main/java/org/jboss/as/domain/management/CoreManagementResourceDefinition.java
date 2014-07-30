@@ -30,8 +30,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ResourceDefinition;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.access.management.AccessConstraintUtilizationRegistry;
 import org.jboss.as.controller.access.management.DelegatingConfigurableAuthorizer;
@@ -55,7 +57,7 @@ import org.jboss.as.domain.management.security.SecurityRealmResourceDefinition;
  *
  * @author <a href="mailto:darran.lofthouse@jboss.com">Darran Lofthouse</a>
  */
-public class CoreManagementResourceDefinition extends SimpleResourceDefinition {
+public class CoreManagementResourceDefinition extends SimpleResourceDefinition implements ResourceFactoryDescription {
 
     public static final PathElement PATH_ELEMENT = PathElement.pathElement(CORE_SERVICE, MANAGEMENT);
 
@@ -86,6 +88,16 @@ public class CoreManagementResourceDefinition extends SimpleResourceDefinition {
     }
 
     @Override
+    public boolean registerByDefault() {
+        return true;
+    }
+
+    @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        return DEFAULT.createResource(pathElement);
+    }
+
+    @Override
     public void registerChildren(ManagementResourceRegistration resourceRegistration) {
         if (environment != Environment.DOMAIN) {
             resourceRegistration.registerSubModel(ManagementControllerResourceDefinition.INSTANCE);
@@ -98,19 +110,23 @@ public class CoreManagementResourceDefinition extends SimpleResourceDefinition {
         }
 
         boolean registerAuditLog = true;
+        AccessAuthorizationResourceDefinition accessAuthorization = null;
         switch (environment) {
             case DOMAIN:
-                resourceRegistration.registerSubModel(AccessAuthorizationResourceDefinition.forDomain(authorizer));
+                accessAuthorization = AccessAuthorizationResourceDefinition.forDomain(authorizer);
                 registerAuditLog = false;
                 break;
             case DOMAIN_SERVER:
-                resourceRegistration.registerSubModel(AccessAuthorizationResourceDefinition.forDomainServer(authorizer));
+                accessAuthorization = AccessAuthorizationResourceDefinition.forDomainServer(authorizer);
                 break;
             case HOST_CONTROLLER:
-                resourceRegistration.registerSubModel(AccessAuthorizationResourceDefinition.forHost(authorizer));
+                accessAuthorization = AccessAuthorizationResourceDefinition.forHost(authorizer);
                 break;
             case STANDALONE_SERVER:
-                resourceRegistration.registerSubModel(AccessAuthorizationResourceDefinition.forStandaloneServer(authorizer));
+                accessAuthorization = AccessAuthorizationResourceDefinition.forStandaloneServer(authorizer);
+        }
+        if (accessAuthorization != null) {
+            resourceRegistration.registerSubModel(accessAuthorization, accessAuthorization);
         }
 
         if (registerAuditLog) {
@@ -123,19 +139,19 @@ public class CoreManagementResourceDefinition extends SimpleResourceDefinition {
         return new CoreManagementResourceDefinition(Environment.DOMAIN, authorizer, null, null, null, interfaces);
     }
 
-    public static SimpleResourceDefinition forDomainServer(final DelegatingConfigurableAuthorizer authorizer,
+    public static CoreManagementResourceDefinition forDomainServer(final DelegatingConfigurableAuthorizer authorizer,
             final ManagedAuditLogger auditLogger, final PathManagerService pathManager, final EnvironmentNameReader environmentReader) {
         List<ResourceDefinition> interfaces = Collections.emptyList();
         return new CoreManagementResourceDefinition(Environment.DOMAIN_SERVER, authorizer, auditLogger, pathManager, environmentReader, interfaces);
     }
 
-    public static SimpleResourceDefinition forHost(final DelegatingConfigurableAuthorizer authorizer,
+    public static CoreManagementResourceDefinition forHost(final DelegatingConfigurableAuthorizer authorizer,
             final ManagedAuditLogger auditLogger, final PathManagerService pathManager, final EnvironmentNameReader environmentReader,
             final ResourceDefinition... interfaces) {
         return new CoreManagementResourceDefinition(Environment.HOST_CONTROLLER, authorizer, auditLogger, pathManager, environmentReader, Arrays.asList(interfaces));
     }
 
-    public static SimpleResourceDefinition forStandaloneServer(final DelegatingConfigurableAuthorizer authorizer,
+    public static CoreManagementResourceDefinition forStandaloneServer(final DelegatingConfigurableAuthorizer authorizer,
             final ManagedAuditLogger auditLogger, final PathManagerService pathManager, final EnvironmentNameReader environmentReader,
             final ResourceDefinition... interfaces) {
         return new CoreManagementResourceDefinition(Environment.STANDALONE_SERVER, authorizer, auditLogger, pathManager, environmentReader, Arrays.asList(interfaces));

@@ -26,10 +26,10 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DIS
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST_ENVIRONMENT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT_OPERATIONS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT_MAJOR_VERSION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT_MICRO_VERSION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT_MINOR_VERSION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT_OPERATIONS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PRODUCT_NAME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PRODUCT_VERSION;
@@ -46,11 +46,9 @@ import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.host.controller.HostControllerEnvironment;
-import org.jboss.as.host.controller.logging.HostControllerLogger;
 import org.jboss.as.host.controller.HostModelUtil;
 import org.jboss.as.host.controller.ignored.IgnoredDomainResourceRegistry;
-import org.jboss.as.platform.mbean.PlatformMBeanConstants;
-import org.jboss.as.platform.mbean.RootPlatformMBeanResource;
+import org.jboss.as.host.controller.logging.HostControllerLogger;
 import org.jboss.as.version.Version;
 import org.jboss.dmr.ModelNode;
 import org.jboss.modules.ModuleClassLoader;
@@ -116,7 +114,7 @@ public class HostModelRegistrationHandler implements OperationStepHandler {
 
         // Wire in the platform mbean resources. We're bypassing the context.createResource API here because
         // we want to use our own resource type. But it's ok as the createResource calls above have taken the lock
-        rootResource.registerChild(PlatformMBeanConstants.ROOT_PATH, new RootPlatformMBeanResource());
+        // rootResource.registerChild(PlatformMBeanConstants.ROOT_PATH, new RootPlatformMBeanResource());
         // Wire in the ignored-resources resource
         Resource.ResourceEntry ignoredRoot = ignoredDomainResourceRegistry.getRootResource();
         rootResource.registerChild(ignoredRoot.getPathElement(), ignoredRoot);

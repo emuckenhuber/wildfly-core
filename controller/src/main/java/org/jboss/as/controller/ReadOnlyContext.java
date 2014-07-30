@@ -176,7 +176,7 @@ class ReadOnlyContext extends AbstractOperationContext {
     }
 
     @Override
-    public Resource createResource(PathAddress address) throws UnsupportedOperationException {
+    public Resource createResource(PathAddress address) {
         throw readOnlyContext();
     }
 

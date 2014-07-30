@@ -33,7 +33,9 @@ import java.util.Set;
 
 /**
  * An addressable resource in the management model, representing a local model and child resources.
- * <p>Instances of this class are <b>not</b> thread-safe and need to be synchronized externally.
+ *
+ * <p>NOTE: {@link #clone()} usually returns a copy of the resource for write operations. If a custom implementation
+ * of {@link #clone()} does not return a copy the resource it would need to be thread-safe.
  *
  * @author Emanuel Muckenhuber
  */

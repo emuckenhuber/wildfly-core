@@ -41,10 +41,12 @@ import org.jboss.as.controller.AbstractControllerService;
 import org.jboss.as.controller.BootContext;
 import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.ModelControllerServiceInitialization;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.ResourceDefinition;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.RunningModeControl;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.access.management.DelegatingConfigurableAuthorizer;
@@ -56,16 +58,13 @@ import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.controller.registry.ResourceFactory;
 import org.jboss.as.controller.services.path.PathManager;
 import org.jboss.as.controller.services.path.PathManagerService;
-import org.jboss.as.domain.management.access.AccessAuthorizationResourceDefinition;
-import org.jboss.as.platform.mbean.PlatformMBeanConstants;
-import org.jboss.as.platform.mbean.RootPlatformMBeanResource;
 import org.jboss.as.remoting.HttpListenerRegistryService;
 import org.jboss.as.remoting.management.ManagementRemotingServices;
 import org.jboss.as.repository.ContentRepository;
 import org.jboss.as.server.controller.resources.ServerRootResourceDefinition;
-import org.jboss.as.server.controller.resources.VersionModelInitializer;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentCompleteServiceProcessor;
 import org.jboss.as.server.deployment.DeploymentMountProvider;
@@ -367,20 +366,22 @@ public final class ServerService extends AbstractControllerService {
 
     @Override
     protected void initModel(Resource rootResource, ManagementResourceRegistration rootRegistration, Resource modelControllerResource) {
-        // TODO maybe make creating of empty nodes part of the MNR description
-        Resource managementResource = Resource.Factory.create(); // TODO - Can we get a Resource direct from CoreManagementResourceDefinition?
+
+        Resource managementResource = rootResource.getChild(PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, ModelDescriptionConstants.MANAGEMENT));
         managementResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.SERVICE, ModelDescriptionConstants.MANAGEMENT_OPERATIONS), modelControllerResource);
-        rootResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, ModelDescriptionConstants.MANAGEMENT), managementResource);
-        rootResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, ModelDescriptionConstants.SERVICE_CONTAINER), Resource.Factory.create());
-        rootResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, ModelDescriptionConstants.MODULE_LOADING), Resource.Factory.create());
-        managementResource.registerChild(AccessAuthorizationResourceDefinition.PATH_ELEMENT, AccessAuthorizationResourceDefinition.createResource(authorizer.getWritableAuthorizerConfiguration()));
-        rootResource.registerChild(ServerEnvironmentResourceDescription.RESOURCE_PATH, Resource.Factory.create());
+
+        // rootResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, ModelDescriptionConstants.MANAGEMENT), managementResource);
+        // rootResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, ModelDescriptionConstants.SERVICE_CONTAINER), Resource.Factory.create());
+        // rootResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, ModelDescriptionConstants.MODULE_LOADING), Resource.Factory.create());
+        // managementResource.registerChild(AccessAuthorizationResourceDefinition.PATH_ELEMENT, AccessAuthorizationResourceDefinition.createResource(authorizer.getWritableAuthorizerConfiguration()));
+
+        // rootResource.registerChild(ServerEnvironmentResourceDescription.RESOURCE_PATH, Resource.Factory.create());
         ((PathManagerService)injectedPathManagerService.getValue()).addPathManagerResources(rootResource);
 
-        VersionModelInitializer.registerRootResource(rootResource, configuration.getServerEnvironment() != null ? configuration.getServerEnvironment().getProductConfig() : null);
+        // VersionModelInitializer.registerRootResource(rootResource, configuration.getServerEnvironment() != null ? configuration.getServerEnvironment().getProductConfig() : null);
 
         // Platform MBeans
-        rootResource.registerChild(PlatformMBeanConstants.ROOT_PATH, new RootPlatformMBeanResource());
+        // rootResource.registerChild(PlatformMBeanConstants.ROOT_PATH, new RootPlatformMBeanResource());
     }
 
     @Override
@@ -435,7 +436,7 @@ public final class ServerService extends AbstractControllerService {
         }
     }
 
-    private static class DelegatingResourceDefinition implements ResourceDefinition {
+    private static class DelegatingResourceDefinition implements ResourceDefinition, ResourceFactoryDescription {
         private volatile ResourceDefinition delegate;
 
         void setDelegate(ResourceDefinition delegate) {
@@ -478,6 +479,19 @@ public final class ServerService extends AbstractControllerService {
                 return Collections.emptyList();
             }
             return delegate.getAccessConstraints();
+        }
+
+        @Override
+        public boolean registerByDefault() {
+            return false;
+        }
+
+        @Override
+        public Resource createResource(PathElement pathElement) throws OperationFailedException {
+            if (delegate instanceof ResourceFactoryDescription) {
+                return ((ResourceFactoryDescription) delegate).createResource(pathElement);
+            }
+            return ResourceFactory.DEFAULT.createResource(pathElement);
         }
     }
 }

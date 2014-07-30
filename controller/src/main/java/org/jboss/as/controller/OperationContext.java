@@ -420,7 +420,7 @@ public interface OperationContext extends ExpressionResolver {
      * @throws IllegalStateException if a resource already exists at the given address
      * @throws UnsupportedOperationException if the calling operation is not a model operation
      */
-    void addResource(PathAddress address, Resource toAdd);
+    void addResource(PathAddress address, Resource toAdd) throws UnsupportedOperationException;
 
     /**
      * Get the resource for read only operations, relative to the executed operation address. Reads never block.

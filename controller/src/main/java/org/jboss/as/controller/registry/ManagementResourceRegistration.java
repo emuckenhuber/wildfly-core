@@ -34,6 +34,7 @@ import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProxyController;
 import org.jboss.as.controller.ResourceDefinition;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.access.management.AccessConstraintUtilizationRegistry;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
@@ -45,7 +46,7 @@ import org.jboss.as.controller.logging.ControllerLogger;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-public interface ManagementResourceRegistration extends ImmutableManagementResourceRegistration {
+public interface ManagementResourceRegistration extends ImmutableManagementResourceRegistration, ResourceFactory {
 
     /**
      * Get a specifically named resource that overrides this {@link PathElement#WILDCARD_VALUE wildcard registration}
@@ -107,6 +108,10 @@ public interface ManagementResourceRegistration extends ImmutableManagementResou
      * @throws SecurityException if the caller does not have {@link ImmutableManagementResourceRegistration#ACCESS_PERMISSION}
      */
     ManagementResourceRegistration registerSubModel(ResourceDefinition resourceDefinition);
+
+    ManagementResourceRegistration registerSubModel(ResourceDefinition resourceDefinition, ResourceFactoryDescription resourceFactory);
+
+    ManagementResourceRegistration registerRuntimeModel(ResourceDefinition resourceDefinition, ResourceProvider resourceProvider);
 
     /**
      * Unregister the existence of an addressable sub-resource of this resource.
@@ -487,7 +492,11 @@ public interface ManagementResourceRegistration extends ImmutableManagementResou
          * @throws SecurityException if the caller does not have {@link ImmutableManagementResourceRegistration#ACCESS_PERMISSION}
          */
         public static ManagementResourceRegistration create(final ResourceDefinition resourceDefinition) {
-            return create(resourceDefinition, null);
+            return create(resourceDefinition, ResourceFactoryDescription.DEFAULT, null);
+        }
+
+        public static ManagementResourceRegistration create(final ResourceDefinition resourceDefinition, final ResourceFactoryDescription resourceFactoryDescription) {
+            return create(resourceDefinition, resourceFactoryDescription, null);
         }
 
         /**
@@ -502,14 +511,21 @@ public interface ManagementResourceRegistration extends ImmutableManagementResou
          */
         public static ManagementResourceRegistration create(final ResourceDefinition resourceDefinition,
                                                             AccessConstraintUtilizationRegistry constraintUtilizationRegistry) {
+            return create(resourceDefinition, ResourceFactoryDescription.DEFAULT, constraintUtilizationRegistry);
+        }
+
+        public static ManagementResourceRegistration create(final ResourceDefinition resourceDefinition,
+                                                            final ResourceFactoryDescription resourceFactoryDescription,
+                                                            AccessConstraintUtilizationRegistry constraintUtilizationRegistry) {
             if (resourceDefinition == null) {
                 throw ControllerLogger.ROOT_LOGGER.nullVar("rootModelDescriptionProviderFactory");
             }
-            ConcreteResourceRegistration resourceRegistration = new ConcreteResourceRegistration(null, null, resourceDefinition, constraintUtilizationRegistry, false);
+            ConcreteResourceRegistration resourceRegistration = new ConcreteResourceRegistration(null, null, resourceDefinition, resourceFactoryDescription, constraintUtilizationRegistry, false);
             resourceDefinition.registerAttributes(resourceRegistration);
             resourceDefinition.registerOperations(resourceRegistration);
             resourceDefinition.registerChildren(resourceRegistration);
             return resourceRegistration;
         }
+
     }
 }

@@ -24,6 +24,7 @@ package org.jboss.as.patching.management;
 
 
 import org.jboss.as.controller.ModelControllerServiceInitialization;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.patching.installation.InstallationManager;
@@ -54,10 +55,19 @@ public final class PatchIntegrationFactory implements ModelControllerServiceInit
         final ServiceController<InstallationManager> imController = InstallationManagerService.installService(serviceTarget);
 
         // Register the patch resource description
-        registration.registerSubModel(PatchResourceDefinition.INSTANCE);
+
+        ManagementResourceRegistration r = registration.registerSubModel(PatchResourceDefinition.INSTANCE, PatchResourceDefinition.INSTANCE);
+
+        r.registerRuntimeModel(PatchResourceDefinition.INSTANCE.getLayers(false), new PatchResource.LayerResourceProvider(imController));
+        r.registerRuntimeModel(PatchResourceDefinition.INSTANCE.getLayers(true), new PatchResource.AddOnResourceProvider(imController));
+
         // and resource
-        PatchResource patchResource = new PatchResource(imController);
-        resource.registerChild(PatchResourceDefinition.PATH, patchResource);
+        //PatchResource patchResource = new PatchResource(imController);
+        try {
+            resource.registerChild(PatchResourceDefinition.PATH, r.createResource(null));
+        } catch (OperationFailedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

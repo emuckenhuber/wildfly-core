@@ -41,6 +41,7 @@ import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.ResourceDefinition;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.RunningMode;
 import org.jboss.as.controller.RunningModeControl;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
@@ -55,6 +56,7 @@ import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.controller.registry.ResourceFactory;
 import org.jboss.as.controller.transform.TransformerRegistry;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.StartContext;
@@ -330,7 +332,7 @@ public abstract class ModelTestModelControllerService extends AbstractController
         }
     };
 
-    public static class DelegatingResourceDefinition implements ResourceDefinition {
+    public static class DelegatingResourceDefinition implements ResourceDefinition, ResourceFactoryDescription {
         private volatile ResourceDefinition delegate;
 
         public void setDelegate(ResourceDefinition delegate) {
@@ -373,6 +375,19 @@ public abstract class ModelTestModelControllerService extends AbstractController
                 return Collections.emptyList();
             }
             return delegate.getAccessConstraints();
+        }
+
+        @Override
+        public boolean registerByDefault() {
+            return false;
+        }
+
+        @Override
+        public Resource createResource(PathElement pathElement) throws OperationFailedException {
+            if (delegate instanceof ResourceFactoryDescription) {
+                return ((ResourceFactoryDescription) delegate).createResource(pathElement);
+            }
+            return ResourceFactory.DEFAULT.createResource(pathElement);
         }
     }
 

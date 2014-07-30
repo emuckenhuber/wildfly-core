@@ -33,6 +33,8 @@ import java.util.Set;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.NotificationDefinition;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationStepHandler;
@@ -65,6 +67,11 @@ final class AliasResourceRegistration extends AbstractResourceRegistration imple
     }
 
     @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        return ResourceFactory.DEFAULT.createResource(pathElement);
+    }
+
+    @Override
     OperationEntry getOperationEntry(final ListIterator<PathElement> iterator, final String operationName, OperationEntry inherited) {
         OperationEntry targetOp = target.getOperationEntry(iterator, operationName, inherited);
         if (targetOp == null) {
@@ -83,6 +90,11 @@ final class AliasResourceRegistration extends AbstractResourceRegistration imple
     public boolean isRuntimeOnly() {
         //TODO use target resource?
         return target.isRuntimeOnly();
+    }
+
+    @Override
+    public ManagementResourceRegistration registerRuntimeModel(ResourceDefinition resourceDefinition, ResourceProvider resourceProvider) {
+        throw new RuntimeException();
     }
 
     @Override
@@ -107,6 +119,11 @@ final class AliasResourceRegistration extends AbstractResourceRegistration imple
 
     @Override
     public ManagementResourceRegistration registerSubModel(final ResourceDefinition resourceDefinition) {
+        throw alreadyRegistered();
+    }
+
+    @Override
+    public ManagementResourceRegistration registerSubModel(ResourceDefinition resourceDefinition, ResourceFactoryDescription resourceFactory) {
         throw alreadyRegistered();
     }
 

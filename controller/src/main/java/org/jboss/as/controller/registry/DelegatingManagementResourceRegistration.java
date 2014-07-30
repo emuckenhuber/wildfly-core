@@ -30,11 +30,13 @@ import java.util.Set;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.NotificationDefinition;
 import org.jboss.as.controller.OperationDefinition;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProxyController;
 import org.jboss.as.controller.ResourceDefinition;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.descriptions.OverrideDescriptionProvider;
@@ -58,6 +60,21 @@ public class DelegatingManagementResourceRegistration implements ManagementResou
      */
     public DelegatingManagementResourceRegistration(ManagementResourceRegistration delegate) {
         this.delegate = delegate;
+    }
+
+    @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        return delegate.createResource(pathElement);
+    }
+
+    @Override
+    public ManagementResourceRegistration registerSubModel(ResourceDefinition resourceDefinition, ResourceFactoryDescription resourceFactory) {
+        return delegate.registerSubModel(resourceDefinition, resourceFactory);
+    }
+
+    @Override
+    public ManagementResourceRegistration registerRuntimeModel(ResourceDefinition resourceDefinition, ResourceProvider resourceProvider) {
+        return delegate.registerRuntimeModel(resourceDefinition, resourceProvider);
     }
 
     @Override

@@ -59,12 +59,18 @@ abstract class AbstractResourceRegistration implements ManagementResourceRegistr
     private final String valueString;
     private final NodeSubregistry parent;
     private final PathAddress pathAddress;
+    private final boolean registerByDefault;
     private RootInvocation rootInvocation;
 
     AbstractResourceRegistration(final String valueString, final NodeSubregistry parent) {
+        this(valueString, parent, false);
+    }
+
+    AbstractResourceRegistration(final String valueString, final NodeSubregistry parent, final boolean registerByDefault) {
         checkPermission();
         this.valueString = valueString;
         this.parent = parent;
+        this.registerByDefault = registerByDefault;
         this.pathAddress = parent == null ? PathAddress.EMPTY_ADDRESS : parent.getPathAddress(valueString);
     }
 
@@ -77,6 +83,10 @@ abstract class AbstractResourceRegistration implements ManagementResourceRegistr
 
     NodeSubregistry getParent() {
         return parent;
+    }
+
+    boolean isRegisterByDefault() {
+        return registerByDefault;
     }
 
     void addAccessConstraints(List<AccessConstraintDefinition> list) {

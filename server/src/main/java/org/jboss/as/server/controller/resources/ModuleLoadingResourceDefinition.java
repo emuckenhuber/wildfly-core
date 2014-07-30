@@ -42,6 +42,7 @@ import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleListAttributeDefinition;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
@@ -49,6 +50,7 @@ import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.server.controller.descriptions.ServerDescriptions;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
@@ -68,7 +70,7 @@ import org.jboss.modules.ResourceLoaderSpec;
  *
  * @author Brian Stansberry (c) 2012 Red Hat Inc.
  */
-public class ModuleLoadingResourceDefinition extends SimpleResourceDefinition {
+public class ModuleLoadingResourceDefinition extends SimpleResourceDefinition implements ResourceFactoryDescription {
 
     private static final AttributeDefinition MODULE_NAME = new SimpleAttributeDefinitionBuilder(MODULE, ModelType.STRING).build();
 
@@ -78,6 +80,16 @@ public class ModuleLoadingResourceDefinition extends SimpleResourceDefinition {
         super(PathElement.pathElement(CORE_SERVICE, MODULE_LOADING),
                 ServerDescriptions.getResourceDescriptionResolver("core", MODULE_LOADING));
         this.accessConstraints = SensitiveTargetAccessConstraintDefinition.MODULE_LOADING.wrapAsList();
+    }
+
+    @Override
+    public boolean registerByDefault() {
+        return true;
+    }
+
+    @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        return DEFAULT.createResource(pathElement);
     }
 
     @Override

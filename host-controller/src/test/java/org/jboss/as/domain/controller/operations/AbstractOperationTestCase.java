@@ -57,6 +57,8 @@ import java.util.Set;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.NotificationDefinition;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.NoopOperationStepHandler;
 import org.jboss.as.controller.OperationContext;
@@ -88,6 +90,8 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.NotificationEntry;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.controller.registry.ResourceFactory;
+import org.jboss.as.controller.registry.ResourceProvider;
 import org.jboss.as.domain.controller.LocalHostControllerInfo;
 import org.jboss.as.domain.management.CoreManagementResourceDefinition;
 import org.jboss.as.domain.management.access.AccessAuthorizationResourceDefinition;
@@ -677,6 +681,17 @@ public abstract class AbstractOperationTestCase {
 
 
     static final ManagementResourceRegistration RESOURCE_REGISTRATION = new ManagementResourceRegistration() {
+
+        @Override
+        public Resource createResource(PathElement pathElement) throws OperationFailedException {
+            return ResourceFactory.DEFAULT.createResource(pathElement);
+        }
+
+        @Override
+        public ManagementResourceRegistration registerRuntimeModel(ResourceDefinition resourceDefinition, ResourceProvider resourceProvider) {
+            return null;
+        }
+
         @Override
         public ManagementResourceRegistration getOverrideModel(String name) {
             return null;
@@ -692,6 +707,11 @@ public abstract class AbstractOperationTestCase {
         }
 
         public ManagementResourceRegistration registerSubModel(PathElement address, DescriptionProvider descriptionProvider) {
+            return null;
+        }
+
+        @Override
+        public ManagementResourceRegistration registerSubModel(ResourceDefinition resourceDefinition, ResourceFactoryDescription resourceFactory) {
             return null;
         }
 

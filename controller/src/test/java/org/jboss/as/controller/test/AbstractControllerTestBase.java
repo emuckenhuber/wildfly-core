@@ -60,7 +60,6 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.staxmapper.XMLElementWriter;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 
 /**
@@ -240,11 +239,11 @@ public abstract class AbstractControllerTestBase {
         }
     }
 
-    static void createModel(final OperationContext context, final ModelNode node) {
+    static void createModel(final OperationContext context, final ModelNode node) throws OperationFailedException {
         createModel(context, PathAddress.EMPTY_ADDRESS, node);
     }
 
-    static void createModel(final OperationContext context, final PathAddress base, final ModelNode node) {
+    static void createModel(final OperationContext context, final PathAddress base, final ModelNode node) throws OperationFailedException {
         if (!node.isDefined()) {
             return;
         }

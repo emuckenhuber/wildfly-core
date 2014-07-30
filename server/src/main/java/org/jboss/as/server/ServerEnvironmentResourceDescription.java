@@ -33,6 +33,7 @@ import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.RunningMode;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
@@ -41,6 +42,8 @@ import org.jboss.as.controller.operations.validation.EnumValidator;
 import org.jboss.as.controller.persistence.ConfigurationFile;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.controller.registry.ResourceFactory;
 import org.jboss.as.server.controller.descriptions.ServerDescriptions;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
@@ -52,7 +55,8 @@ import org.jboss.dmr.ModelType;
  *
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  */
-public class ServerEnvironmentResourceDescription extends SimpleResourceDefinition {
+public class ServerEnvironmentResourceDescription extends SimpleResourceDefinition implements ResourceFactoryDescription {
+
     public static final PathElement RESOURCE_PATH = PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, SERVER_ENVIRONMENT);
 
     public static final AttributeDefinition BASE_DIR = SimpleAttributeDefinitionBuilder.create("base-dir", ModelType.STRING).setFlags(AttributeAccess.Flag.STORAGE_RUNTIME).build();
@@ -91,6 +95,16 @@ public class ServerEnvironmentResourceDescription extends SimpleResourceDefiniti
     private ServerEnvironmentResourceDescription(final ServerEnvironment environment) {
         super(RESOURCE_PATH, ServerDescriptions.getResourceDescriptionResolver("server.env"));
         osh = new ServerEnvironmentReadHandler(environment);
+    }
+
+    @Override
+    public boolean registerByDefault() {
+        return true;
+    }
+
+    @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        return ResourceFactory.DEFAULT.createResource(pathElement);
     }
 
     /**

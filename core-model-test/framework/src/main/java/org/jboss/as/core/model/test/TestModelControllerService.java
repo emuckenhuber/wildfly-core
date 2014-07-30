@@ -35,13 +35,11 @@ import java.util.concurrent.Executors;
 
 import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.ExpressionResolver;
-import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.ProxyController;
 import org.jboss.as.controller.RunningMode;
 import org.jboss.as.controller.RunningModeControl;
 import org.jboss.as.controller.audit.AuditLogger;
-import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.persistence.NullConfigurationPersister;
@@ -54,7 +52,6 @@ import org.jboss.as.domain.controller.LocalHostControllerInfo;
 import org.jboss.as.domain.controller.SlaveRegistrationException;
 import org.jboss.as.domain.controller.resources.DomainRootDefinition;
 import org.jboss.as.domain.management.CoreManagementResourceDefinition;
-import org.jboss.as.domain.management.access.AccessAuthorizationResourceDefinition;
 import org.jboss.as.host.controller.HostControllerConfigurationPersister;
 import org.jboss.as.host.controller.HostControllerEnvironment;
 import org.jboss.as.host.controller.HostModelUtil;
@@ -74,7 +71,6 @@ import org.jboss.as.repository.HostFileRepository;
 import org.jboss.as.server.RuntimeExpressionResolver;
 import org.jboss.as.server.ServerEnvironment;
 import org.jboss.as.server.ServerEnvironment.LaunchType;
-import org.jboss.as.server.ServerEnvironmentResourceDescription;
 import org.jboss.as.server.ServerPathManagerService;
 import org.jboss.as.server.controller.resources.ServerRootResourceDefinition;
 import org.jboss.as.server.controller.resources.VersionModelInitializer;
@@ -418,13 +414,13 @@ class TestModelControllerService extends ModelTestModelControllerService {
 
         @Override
         public void initCoreModel(Resource rootResource, ManagementResourceRegistration rootRegistration, Resource modelControllerResource) {
-            VersionModelInitializer.registerRootResource(rootResource, null);
-            Resource managementResource = Resource.Factory.create();
-            rootResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, ModelDescriptionConstants.MANAGEMENT), managementResource);
-            rootResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, ModelDescriptionConstants.SERVICE_CONTAINER), Resource.Factory.create());
-            managementResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.ACCESS, ModelDescriptionConstants.AUTHORIZATION),
-                    AccessAuthorizationResourceDefinition.createResource(authorizer.getWritableAuthorizerConfiguration()));
-            rootResource.registerChild(ServerEnvironmentResourceDescription.RESOURCE_PATH, Resource.Factory.create());
+//            VersionModelInitializer.registerRootResource(rootResource, null);
+//            Resource managementResource = Resource.Factory.create();
+//            rootResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, ModelDescriptionConstants.MANAGEMENT), managementResource);
+//            rootResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.CORE_SERVICE, ModelDescriptionConstants.SERVICE_CONTAINER), Resource.Factory.create());
+//            managementResource.registerChild(PathElement.pathElement(ModelDescriptionConstants.ACCESS, ModelDescriptionConstants.AUTHORIZATION),
+//                    AccessAuthorizationResourceDefinition.createResource(authorizer.getWritableAuthorizerConfiguration()));
+//            rootResource.registerChild(ServerEnvironmentResourceDescription.RESOURCE_PATH, Resource.Factory.create());
             pathManagerService.addPathManagerResources(rootResource);
         }
     }

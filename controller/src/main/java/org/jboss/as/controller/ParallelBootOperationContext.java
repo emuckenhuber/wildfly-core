@@ -202,7 +202,7 @@ class ParallelBootOperationContext extends AbstractOperationContext {
     }
 
     @Override
-    public Resource createResource(PathAddress address) throws UnsupportedOperationException {
+    public Resource createResource(PathAddress address) {
         acquireControllerLock();
         PathAddress fullAddress = activeStep.address.append(address);
         return primaryContext.createResource(fullAddress);

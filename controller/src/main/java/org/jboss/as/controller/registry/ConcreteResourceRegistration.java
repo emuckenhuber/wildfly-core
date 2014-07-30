@@ -39,11 +39,13 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.NotificationDefinition;
 import org.jboss.as.controller.OperationDefinition;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProxyController;
 import org.jboss.as.controller.ResourceDefinition;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.access.management.AccessConstraintUtilizationRegistry;
 import org.jboss.as.controller.descriptions.DefaultResourceDescriptionProvider;
@@ -67,6 +69,7 @@ final class ConcreteResourceRegistration extends AbstractResourceRegistration {
     private volatile Map<String, NotificationEntry> notifications;
 
     private final ResourceDefinition resourceDefinition;
+    private final ResourceFactoryDescription rfd;
     private final List<AccessConstraintDefinition> accessConstraintDefinitions;
 
     @SuppressWarnings("unused")
@@ -82,7 +85,13 @@ final class ConcreteResourceRegistration extends AbstractResourceRegistration {
 
     ConcreteResourceRegistration(final String valueString, final NodeSubregistry parent, final ResourceDefinition definition,
                                  AccessConstraintUtilizationRegistry constraintUtilizationRegistry, final boolean runtimeOnly) {
-        super(valueString, parent);
+        this(valueString, parent, definition, ResourceFactoryDescription.DEFAULT, constraintUtilizationRegistry, runtimeOnly);
+    }
+
+    ConcreteResourceRegistration(final String valueString, final NodeSubregistry parent, final ResourceDefinition definition,
+                                 ResourceFactoryDescription resourceFactoryDescription,
+                                 AccessConstraintUtilizationRegistry constraintUtilizationRegistry, final boolean runtimeOnly) {
+        super(valueString, parent, resourceFactoryDescription.registerByDefault());
         this.constraintUtilizationRegistry = constraintUtilizationRegistry;
         childrenUpdater.clear(this);
         operationsUpdater.clear(this);
@@ -91,6 +100,17 @@ final class ConcreteResourceRegistration extends AbstractResourceRegistration {
         this.resourceDefinition = definition;
         this.runtimeOnly.set(runtimeOnly);
         this.accessConstraintDefinitions = buildAccessConstraints();
+        this.rfd = resourceFactoryDescription;
+    }
+
+    @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        checkPermission();
+        final Resource resource = rfd.createResource(pathElement);
+        for (final NodeSubregistry subregistry : childrenUpdater.getReadOnly(this).values()) {
+            subregistry.registerResources(resource);
+        }
+        return resource;
     }
 
     @Override
@@ -135,6 +155,11 @@ final class ConcreteResourceRegistration extends AbstractResourceRegistration {
 
     @Override
     public ManagementResourceRegistration registerSubModel(final ResourceDefinition resourceDefinition) {
+        return registerSubModel(resourceDefinition, ResourceFactoryDescription.DEFAULT);
+    }
+
+    @Override
+    public ManagementResourceRegistration registerSubModel(ResourceDefinition resourceDefinition, ResourceFactoryDescription resourceFactoryDescription) {
         if (resourceDefinition == null) {
             throw ControllerLogger.ROOT_LOGGER.nullVar("resourceDefinition");
         }
@@ -151,7 +176,7 @@ final class ConcreteResourceRegistration extends AbstractResourceRegistration {
         }
         final String key = address.getKey();
         final NodeSubregistry child = getOrCreateSubregistry(key);
-        final ManagementResourceRegistration resourceRegistration = child.register(address.getValue(), resourceDefinition, false);
+        final ManagementResourceRegistration resourceRegistration = child.register(address.getValue(), resourceDefinition, resourceFactoryDescription, false);
         resourceDefinition.registerAttributes(resourceRegistration);
         resourceDefinition.registerOperations(resourceRegistration);
         resourceDefinition.registerNotifications(resourceRegistration);
@@ -164,6 +189,43 @@ final class ConcreteResourceRegistration extends AbstractResourceRegistration {
             }
         }
         return resourceRegistration;
+    }
+
+    @Override
+    public ManagementResourceRegistration registerRuntimeModel(ResourceDefinition resourceDefinition, ResourceProvider resourceProvider) {
+        assert resourceProvider != null;
+        final PathElement pathElement = resourceDefinition.getPathElement();
+        if (!pathElement.isWildcard()) {
+            throw new RuntimeException("can only register runtime model for wildcard addresses");
+        }
+        final String key = pathElement.getKey();
+
+        checkPermission();
+        final Map<String, NodeSubregistry> snapshot = childrenUpdater.get(this);
+        final NodeSubregistry subregistry = snapshot.get(key);
+        if (subregistry != null) {
+            throw alreadyRegistered(pathElement.getKey(), pathElement.getValue());
+        }
+        final NodeSubregistry newRegistry = new NodeSubregistry(key, this, constraintUtilizationRegistry, resourceProvider);
+        final NodeSubregistry appearing = childrenUpdater.putAtomic(this, key, newRegistry, snapshot);
+        if (appearing == null) {
+            final ManagementResourceRegistration resourceRegistration =  newRegistry.register(pathElement.getValue(), resourceDefinition, ResourceFactoryDescription.DEFAULT, true);
+            resourceDefinition.registerAttributes(resourceRegistration);
+            resourceDefinition.registerOperations(resourceRegistration);
+            resourceDefinition.registerNotifications(resourceRegistration);
+            resourceDefinition.registerChildren(resourceRegistration);
+            if (constraintUtilizationRegistry != null) {
+                PathAddress childAddress = getPathAddress().append(pathElement);
+                List<AccessConstraintDefinition> constraintDefinitions = resourceDefinition.getAccessConstraints();
+                for (AccessConstraintDefinition acd : constraintDefinitions) {
+                    constraintUtilizationRegistry.registerAccessConstraintResourceUtilization(acd.getKey(), childAddress);
+                }
+            }
+            return resourceRegistration;
+        } else if (appearing != newRegistry) {
+            throw alreadyRegistered(pathElement.getKey(), pathElement.getValue());
+        }
+        return null;
     }
 
     @Override

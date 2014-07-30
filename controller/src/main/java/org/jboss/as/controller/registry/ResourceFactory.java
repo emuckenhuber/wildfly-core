@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2011, Red Hat, Inc., and individual contributors
+ * Copyright 2014, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -20,23 +20,32 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.platform.mbean;
+package org.jboss.as.controller.registry;
 
-import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.PathElement;
 
 /**
- * Utility for registering platform mbean resources with a parent resource registration (either a server
- * or host level registration.)
+ * Factory for creating custom resource implementations.
  *
- * @author Brian Stansberry (c) 2011 Red Hat Inc.
+ * @author Emanuel Muckenhuber
  */
-public class PlatformMBeanResourceRegistrar {
+public interface ResourceFactory {
 
-    public static void registerPlatformMBeanResources(final ManagementResourceRegistration parent) {
-        parent.registerSubModel(PlatformMBeanResourceDefinition.INSTANCE, PlatformMBeanResourceDefinition.INSTANCE);
+    /**
+     * Create a new resource.
+     *
+     * @param pathElement    the path element
+     * @return the created resource
+     * @throws OperationFailedException
+     */
+    Resource createResource(PathElement pathElement) throws OperationFailedException;
 
-    }
+    ResourceFactory DEFAULT = new ResourceFactory() {
+        @Override
+        public Resource createResource(PathElement pathElement) {
+            return Resource.Factory.create();
+        }
+    };
 
-    private PlatformMBeanResourceRegistrar() {
-    }
 }

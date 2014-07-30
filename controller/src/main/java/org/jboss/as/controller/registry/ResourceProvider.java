@@ -25,16 +25,67 @@ package org.jboss.as.controller.registry;
 import java.util.Set;
 
 /**
+ * A resource provider.
+ *
+ * NOTE: {@link #clone()} usually returns a copy of the resource provider for write operations. If {@link #clone()}
+ * returns the same instance the implementation needs to take care of thread-safety.
+ *
  * @author Emanuel Muckenhuber
  */
 public interface ResourceProvider extends Cloneable {
 
+    /**
+     * Returns {@code true} if this resource provider contains a resource
+     * for the specified name exists.
+     *
+     * @param name    the resource name
+     * @return {@code true} if the resource exists
+     */
     boolean has(String name);
+
+    /**
+     * Get a resource.
+     *
+     * @param name    the resource name
+     * @return the resource
+     */
     Resource get(String name);
+
+    /**
+     * Returns {@code true} if this provider contains resources.
+     *
+     * @return {@code true} if this provider contains resources
+     */
     boolean hasChildren();
+
+    /**
+     * Returns a set of resource names.
+     *
+     * @return the set of resource names
+     */
     Set<String> children();
+
+    /**
+     * Register a child resource.
+     *
+     * @param name        the resource name
+     * @param resource    the resource
+     */
     void register(String name, Resource resource);
+
+    /**
+     * Remove a specifc resource.
+     *
+     * @param name the resource name
+     * @return the removed resource, {@code null} otherwise
+     */
     Resource remove(String name);
+
+    /**
+     * Clone usually creates a copy of the resource provider.
+     *
+     * @return the resource provider
+     */
     ResourceProvider clone();
 
     public abstract static class ResourceProviderRegistry {

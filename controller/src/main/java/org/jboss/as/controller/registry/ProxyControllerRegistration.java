@@ -33,6 +33,8 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.NotificationDefinition;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationStepHandler;
@@ -70,6 +72,21 @@ final class ProxyControllerRegistration extends AbstractResourceRegistration imp
         this.proxyController = proxyController;
         operationsUpdater.clear(this);
         attributesUpdater.clear(this);
+    }
+
+    @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        return ResourceFactory.DEFAULT.createResource(pathElement);
+    }
+
+    @Override
+    public ManagementResourceRegistration registerSubModel(ResourceDefinition resourceDefinition, ResourceFactoryDescription resourceFactory) {
+        throw alreadyRegistered();
+    }
+
+    @Override
+    public ManagementResourceRegistration registerRuntimeModel(ResourceDefinition resourceDefinition, ResourceProvider resourceProvider) {
+        throw alreadyRegistered();
     }
 
     @Override

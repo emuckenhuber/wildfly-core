@@ -65,9 +65,10 @@ public class ExtensionAddHandler implements OperationStepHandler {
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
         final String moduleName = PathAddress.pathAddress(operation.require(OP_ADDR)).getLastElement().getValue();
-        ExtensionResource resource = new ExtensionResource(moduleName, extensionRegistry);
+        context.createResource(PathAddress.EMPTY_ADDRESS);
 
-        context.addResource(PathAddress.EMPTY_ADDRESS, resource);
+//        ExtensionResource resource = new ExtensionResource(moduleName, extensionRegistry);
+//        context.addResource(PathAddress.EMPTY_ADDRESS, resource);
 
         if (!parallelBoot || !context.isBooting()) {
             initializeExtension(moduleName);

@@ -689,7 +689,14 @@ final class OperationContextImpl extends AbstractOperationContext {
 
     @Override
     public Resource createResource(PathAddress relativeAddress) {
-        final Resource toAdd = Resource.Factory.create();
+        final PathAddress absoluteAddress = activeStep.address.append(relativeAddress);
+        final ManagementResourceRegistration registration = modelController.getRootRegistration().getSubModel(absoluteAddress);
+        final Resource toAdd;
+        try {
+            toAdd = registration.createResource(absoluteAddress.getLastElement());
+        } catch (OperationFailedException e) {
+            throw new RuntimeException(e);
+        }
         addResource(relativeAddress, toAdd);
         return toAdd;
     }

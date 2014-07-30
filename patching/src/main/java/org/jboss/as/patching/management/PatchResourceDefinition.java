@@ -31,6 +31,7 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PrimitiveListAttributeDefinition;
 import org.jboss.as.controller.ResourceDefinition;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
@@ -40,6 +41,7 @@ import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.patching.Constants;
 import org.jboss.as.patching.installation.Identity;
 import org.jboss.as.patching.installation.PatchableTarget;
@@ -50,7 +52,7 @@ import org.jboss.dmr.ModelType;
 /**
  * @author Emanuel Muckenhuber
  */
-class PatchResourceDefinition extends SimpleResourceDefinition {
+class PatchResourceDefinition extends SimpleResourceDefinition implements ResourceFactoryDescription {
 
     public static final String NAME = "patching";
     static final String RESOURCE_NAME = PatchResourceDefinition.class.getPackage().getName() + ".LocalDescriptions";
@@ -134,13 +136,24 @@ class PatchResourceDefinition extends SimpleResourceDefinition {
     static final OperationDefinition AGEOUT_HISTORY = new SimpleOperationDefinitionBuilder("ageout-history", getResourceDescriptionResolver(PatchResourceDefinition.NAME))
             .build();
 
-    static final ResourceDefinition INSTANCE = new PatchResourceDefinition();
+    static final PatchResourceDefinition INSTANCE = new PatchResourceDefinition();
+
 
     private final List<AccessConstraintDefinition> sensitivity;
 
     private PatchResourceDefinition() {
         super(PATH, getResourceDescriptionResolver(NAME));
         sensitivity = SensitiveTargetAccessConstraintDefinition.PATCHING.wrapAsList();
+    }
+
+    @Override
+    public boolean registerByDefault() {
+        return true;
+    }
+
+    @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        return DEFAULT.createResource(pathElement);
     }
 
     @Override
@@ -169,8 +182,14 @@ class PatchResourceDefinition extends SimpleResourceDefinition {
             }
         });
 
-        StandardResourceDescriptionResolver resolver = new StandardResourceDescriptionResolver("patching.layer", "org.jboss.as.patching.management.LocalDescriptions", PatchResourceDefinition.class.getClassLoader());
-        registry.registerSubModel(new SimpleResourceDefinition(PathElement.pathElement("layer"), resolver) {
+    }
+
+    ResourceDefinition getLayers(boolean addons) {
+
+        String suffix = addons ? "addon" : "layer";
+
+        StandardResourceDescriptionResolver resolver = new StandardResourceDescriptionResolver("patching." + suffix, "org.jboss.as.patching.management.LocalDescriptions", PatchResourceDefinition.class.getClassLoader());
+        return new SimpleResourceDefinition(PathElement.pathElement(suffix), resolver) {
 
             @Override
             public void registerAttributes(final ManagementResourceRegistration resource) {
@@ -205,43 +224,7 @@ class PatchResourceDefinition extends SimpleResourceDefinition {
                 return sensitivity;
             }
 
-        });
-
-        resolver = new StandardResourceDescriptionResolver("patching.addon", "org.jboss.as.patching.management.LocalDescriptions", PatchResourceDefinition.class.getClassLoader());
-        registry.registerSubModel(new SimpleResourceDefinition(PathElement.pathElement("addon"), resolver) {
-            @Override
-            public void registerAttributes(final ManagementResourceRegistration resource) {
-                resource.registerReadOnlyAttribute(CUMULATIVE_PATCH_ID, new ElementProviderAttributeReadHandler.AddOnAttributeReadHandler() {
-                    @Override
-                    void handle(ModelNode result, PatchableTarget addon) throws OperationFailedException {
-                        try {
-                            result.set(addon.loadTargetInfo().getCumulativePatchID());
-                        } catch (IOException e) {
-                            throw new OperationFailedException(PatchLogger.ROOT_LOGGER.failedToLoadIdentity(), e);
-                        }
-                    }
-                });
-                resource.registerReadOnlyAttribute(PATCHES, new ElementProviderAttributeReadHandler.AddOnAttributeReadHandler() {
-                    @Override
-                    void handle(ModelNode result, PatchableTarget addon) throws OperationFailedException {
-                        result.setEmptyList();
-                        try {
-                            for (final String id : addon.loadTargetInfo().getPatchIDs()) {
-                                result.add(id);
-                            }
-                        } catch (IOException e) {
-                            throw new OperationFailedException(PatchLogger.ROOT_LOGGER.failedToLoadIdentity(), e);
-                        }
-                    }
-                });
-            }
-
-            @Override
-            public List<AccessConstraintDefinition> getAccessConstraints() {
-                return sensitivity;
-            }
-
-        });
+        };
     }
 
     @Override

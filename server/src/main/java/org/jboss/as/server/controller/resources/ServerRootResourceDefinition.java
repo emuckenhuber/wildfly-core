@@ -28,10 +28,11 @@ import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.CompositeOperationHandler;
 import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.PropertiesAttributeDefinition;
-import org.jboss.as.controller.ResourceDefinition;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.RunningMode;
 import org.jboss.as.controller.RunningModeControl;
 import org.jboss.as.controller.SimpleAttributeDefinition;
@@ -64,6 +65,8 @@ import org.jboss.as.controller.operations.validation.ParameterValidator;
 import org.jboss.as.controller.operations.validation.StringLengthValidator;
 import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.controller.registry.ResourceFactory;
 import org.jboss.as.controller.resource.InterfaceDefinition;
 import org.jboss.as.controller.resource.SocketBindingGroupResourceDefinition;
 import org.jboss.as.controller.services.path.PathManagerService;
@@ -115,7 +118,7 @@ import org.jboss.dmr.ModelType;
  *
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
  */
-public class ServerRootResourceDefinition extends SimpleResourceDefinition {
+public class ServerRootResourceDefinition extends SimpleResourceDefinition implements ResourceFactoryDescription {
 
     private static final ParameterValidator NOT_NULL_STRING_LENGTH_ONE_VALIDATOR = new StringLengthValidator(1, false, false);
 
@@ -229,6 +232,18 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
     }
 
     @Override
+    public boolean registerByDefault() {
+        return false; // does not matter for the root resource
+    }
+
+    @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        final Resource resource = ResourceFactory.DEFAULT.createResource(pathElement);
+        VersionModelInitializer.registerRootResource(resource, serverEnvironment.getProductConfig());
+        return resource;
+    }
+
+    @Override
     public void registerOperations(ManagementResourceRegistration resourceRegistration) {
         GlobalOperationHandlers.registerGlobalOperations(resourceRegistration, ProcessType.STANDALONE_SERVER);
         GlobalNotifications.registerGlobalNotifications(resourceRegistration, ProcessType.STANDALONE_SERVER);
@@ -304,7 +319,8 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
                 ServerShutdownHandler serverShutdownHandler = new ServerShutdownHandler(processState);
                 resourceRegistration.registerOperationHandler(ServerShutdownHandler.DEFINITION, serverShutdownHandler);
             }
-            resourceRegistration.registerSubModel(ServerEnvironmentResourceDescription.of(serverEnvironment));
+            ServerEnvironmentResourceDescription serd = ServerEnvironmentResourceDescription.of(serverEnvironment);
+            resourceRegistration.registerSubModel(serd, serd);
         }
 
     }
@@ -379,7 +395,7 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
                 return null;
             }
         };
-        final ResourceDefinition managementDefinition;
+        final CoreManagementResourceDefinition managementDefinition;
         if (isDomain) {
             managementDefinition = CoreManagementResourceDefinition.forDomainServer(authorizer, auditLogger, pathManager, environmentReader);
         } else {
@@ -387,10 +403,11 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
                     NativeManagementResourceDefinition.INSTANCE, NativeRemotingManagementResourceDefinition.INSTANCE,
                     HttpManagementResourceDefinition.INSTANCE);
         }
-        resourceRegistration.registerSubModel(managementDefinition);
+        resourceRegistration.registerSubModel(managementDefinition, managementDefinition);
 
         // Other core services
-        resourceRegistration.registerSubModel(new ServiceContainerResourceDefinition());
+        final ServiceContainerResourceDefinition containerResourceDefinition = new ServiceContainerResourceDefinition();
+        resourceRegistration.registerSubModel(containerResourceDefinition, containerResourceDefinition);
 
         resourceRegistration.registerSubModel(new ModuleLoadingResourceDefinition());
 
@@ -427,7 +444,8 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
         deployments.registerSubModel(new SimpleResourceDefinition(PathElement.pathElement(SUBDEPLOYMENT), DeploymentAttributes.DEPLOYMENT_RESOLVER));
 
         // Extensions
-        resourceRegistration.registerSubModel(new ExtensionResourceDefinition(extensionRegistry, parallelBoot, true, false));
+        final ExtensionResourceDefinition extensionResourceDefinition = new ExtensionResourceDefinition(extensionRegistry, parallelBoot, true, false);
+        resourceRegistration.registerSubModel(extensionResourceDefinition, extensionResourceDefinition);
         if (extensionRegistry != null) {
             //extension registry may be null during testing
             extensionRegistry.setSubsystemParentResourceRegistrations(resourceRegistration, deployments);

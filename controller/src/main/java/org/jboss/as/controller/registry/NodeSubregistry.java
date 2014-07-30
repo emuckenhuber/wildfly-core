@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
@@ -53,6 +55,7 @@ final class NodeSubregistry {
 
     private final String keyName;
     private final ConcreteResourceRegistration parent;
+    private final ResourceProvider resourceProvider;
     private final AccessConstraintUtilizationRegistry constraintUtilizationRegistry;
     @SuppressWarnings( { "unused" })
     private volatile Map<String, AbstractResourceRegistration> childRegistries;
@@ -60,14 +63,38 @@ final class NodeSubregistry {
     private static final AtomicMapFieldUpdater<NodeSubregistry, String, AbstractResourceRegistration> childRegistriesUpdater = AtomicMapFieldUpdater.newMapUpdater(AtomicReferenceFieldUpdater.newUpdater(NodeSubregistry.class, Map.class, "childRegistries"));
 
     NodeSubregistry(final String keyName, final ConcreteResourceRegistration parent, AccessConstraintUtilizationRegistry constraintUtilizationRegistry) {
+        this(keyName, parent, constraintUtilizationRegistry, null);
+    }
+
+    NodeSubregistry(final String keyName, final ConcreteResourceRegistration parent, AccessConstraintUtilizationRegistry constraintUtilizationRegistry, ResourceProvider resourceProvider) {
         this.keyName = keyName;
         this.parent = parent;
+        this.resourceProvider = resourceProvider;
         this.constraintUtilizationRegistry = constraintUtilizationRegistry;
         childRegistriesUpdater.clear(this);
     }
 
     AbstractResourceRegistration getParent() {
         return parent;
+    }
+
+    // Register static resource providers and resources
+    void registerResources(final Resource parent) throws OperationFailedException {
+        if (resourceProvider != null) {
+            if (parent instanceof ResourceProvider.ResourceProviderRegistry) {
+                checkPermission();
+                ((ResourceProvider.ResourceProviderRegistry) parent).registerResourceProvider(keyName, resourceProvider);
+            } else {
+                throw new OperationFailedException("wrong resource type " + parent);
+            }
+        }
+        for (AbstractResourceRegistration r : childRegistriesUpdater.getReadOnly(this).values()) {
+            if (r.isRegisterByDefault()) {
+                final PathElement element = PathElement.pathElement(keyName, r.getValueString());
+                final Resource resource = r.createResource(element);
+                parent.registerChild(element, resource);
+            }
+        }
     }
 
     Set<String> getChildNames(){
@@ -78,8 +105,8 @@ final class NodeSubregistry {
         return new HashSet<String>(snapshot.keySet());
     }
 
-    ManagementResourceRegistration register(final String elementValue, final ResourceDefinition provider, boolean runtimeOnly) {
-        final AbstractResourceRegistration newRegistry = new ConcreteResourceRegistration(elementValue, this, provider, constraintUtilizationRegistry, runtimeOnly);
+    ManagementResourceRegistration register(final String elementValue, final ResourceDefinition provider, final ResourceFactoryDescription resourceFactoryDescription, boolean runtimeOnly) {
+        final AbstractResourceRegistration newRegistry = new ConcreteResourceRegistration(elementValue, this, provider, resourceFactoryDescription, constraintUtilizationRegistry, runtimeOnly);
         final AbstractResourceRegistration existingRegistry = childRegistriesUpdater.putIfAbsent(this, elementValue, newRegistry);
         if (existingRegistry != null) {
             throw ControllerLogger.ROOT_LOGGER.nodeAlreadyRegistered(getLocationString(), elementValue);
@@ -115,7 +142,6 @@ final class NodeSubregistry {
         checkPermission();
         childRegistriesUpdater.remove(this, elementValue);
     }
-
 
     void unregisterSubModel(final String elementValue) {
         checkPermission();

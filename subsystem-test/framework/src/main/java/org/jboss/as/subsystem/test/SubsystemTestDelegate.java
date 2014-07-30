@@ -63,6 +63,7 @@ import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.ProxyController;
 import org.jboss.as.controller.ResourceDefinition;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.RunningMode;
 import org.jboss.as.controller.RunningModeControl;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
@@ -84,6 +85,8 @@ import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.controller.registry.OperationEntry.EntryType;
 import org.jboss.as.controller.registry.OperationEntry.Flag;
 import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.controller.registry.ResourceFactory;
+import org.jboss.as.controller.registry.ResourceProvider;
 import org.jboss.as.controller.transform.OperationTransformer.TransformedOperation;
 import org.jboss.as.controller.transform.TransformerRegistry;
 import org.jboss.as.model.test.ChildFirstClassLoaderBuilder;
@@ -887,6 +890,21 @@ final class SubsystemTestDelegate {
 
     @SuppressWarnings("deprecation")
     private final ManagementResourceRegistration MOCK_RESOURCE_REG = new ManagementResourceRegistration() {
+
+        @Override
+        public Resource createResource(PathElement pathElement) throws OperationFailedException {
+            return ResourceFactory.DEFAULT.createResource(pathElement);
+        }
+
+        @Override
+        public ManagementResourceRegistration registerRuntimeModel(ResourceDefinition resourceDefinition, ResourceProvider resourceProvider) {
+            return null;
+        }
+
+        @Override
+        public ManagementResourceRegistration registerSubModel(ResourceDefinition resourceDefinition, ResourceFactoryDescription resourceFactory) {
+            return null;
+        }
 
         @Override
         public boolean isRuntimeOnly() {

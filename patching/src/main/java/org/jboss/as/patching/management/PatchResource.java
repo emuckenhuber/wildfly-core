@@ -80,7 +80,7 @@ class PatchResource extends AbstractModelResource {
         return this;
     }
 
-    class LayerResourceProvider extends ElementProviderResourceProvider {
+    static class LayerResourceProvider extends ElementProviderResourceProvider {
 
         LayerResourceProvider(ServiceController<InstallationManager> imController) {
             super(imController);
@@ -93,7 +93,7 @@ class PatchResource extends AbstractModelResource {
 
     }
 
-    class AddOnResourceProvider extends ElementProviderResourceProvider {
+    static class AddOnResourceProvider extends ElementProviderResourceProvider {
 
         AddOnResourceProvider(ServiceController<InstallationManager> imController) {
             super(imController);
@@ -106,7 +106,7 @@ class PatchResource extends AbstractModelResource {
 
     }
 
-    abstract class ElementProviderResourceProvider implements ResourceProvider {
+    abstract static class ElementProviderResourceProvider implements ResourceProvider {
 
         protected final ServiceController<InstallationManager> imController;
 

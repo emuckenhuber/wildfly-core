@@ -107,6 +107,7 @@ public abstract class AbstractControllerService implements Service<ModelControll
     private final RunningModeControl runningModeControl;
     private final DescriptionProvider rootDescriptionProvider;
     private final ResourceDefinition rootResourceDefinition;
+    private final ResourceFactoryDescription resourceFactoryDescription;
     private final ControlledProcessState processState;
     private final OperationStepHandler prepareStep;
     private final InjectedValue<ExecutorService> injectedExecutorService = new InjectedValue<ExecutorService>();
@@ -218,6 +219,11 @@ public abstract class AbstractControllerService implements Service<ModelControll
         this.configurationPersister = configurationPersister;
         this.rootDescriptionProvider = rootDescriptionProvider;
         this.rootResourceDefinition = rootResourceDefinition;
+        if (rootResourceDefinition instanceof ResourceFactoryDescription) {
+            this.resourceFactoryDescription = (ResourceFactoryDescription) rootResourceDefinition;
+        } else {
+            this.resourceFactoryDescription = ResourceFactoryDescription.DEFAULT;
+        }
         this.processState = processState;
         this.prepareStep = prepareStep;
         this.expressionResolver = expressionResolver;
@@ -240,7 +246,7 @@ public abstract class AbstractControllerService implements Service<ModelControll
         authorizerConfig.reset();
         ManagementResourceRegistration rootResourceRegistration = rootDescriptionProvider != null
                 ? ManagementResourceRegistration.Factory.create(rootDescriptionProvider, authorizerConfig)
-                : ManagementResourceRegistration.Factory.create(rootResourceDefinition, authorizerConfig);
+                : ManagementResourceRegistration.Factory.create(rootResourceDefinition, resourceFactoryDescription, authorizerConfig);
         final ModelControllerImpl controller = new ModelControllerImpl(container, target,
                 rootResourceRegistration,
                 new ContainerStateMonitor(container),

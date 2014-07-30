@@ -634,7 +634,7 @@ public class ModelControllerImplUnitTestCase {
     public static class SetupHandler implements OperationStepHandler {
 
         @Override
-        public void execute(OperationContext context, ModelNode operation) {
+        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
             ModelNode model = new ModelNode();
 
             //Atttributes

@@ -26,7 +26,9 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXT
 
 import java.util.List;
 
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.ResourceFactoryDescription;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
@@ -37,6 +39,7 @@ import org.jboss.as.controller.descriptions.common.ControllerResolver;
 import org.jboss.as.controller.operations.validation.StringLengthValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.OperationEntry;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelType;
 
 /**
@@ -44,18 +47,32 @@ import org.jboss.dmr.ModelType;
  *
  * @author Brian Stansberry (c) 2011 Red Hat Inc.
  */
-public class ExtensionResourceDefinition extends SimpleResourceDefinition {
+public class ExtensionResourceDefinition extends SimpleResourceDefinition implements ResourceFactoryDescription {
 
     public static final SimpleAttributeDefinition MODULE = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.MODULE, ModelType.STRING, false)
             .setValidator(new StringLengthValidator(1)).build();
 
     private final List<AccessConstraintDefinition> accessConstraints;
 
+    final ExtensionRegistry extensionRegistry;
+
     public ExtensionResourceDefinition(final ExtensionRegistry extensionRegistry, final boolean parallelBoot, final boolean standalone, final boolean slaveHC) {
         super(PathElement.pathElement(EXTENSION), ControllerResolver.getResolver(EXTENSION),
                 new ExtensionAddHandler(extensionRegistry, parallelBoot, standalone, slaveHC), new ExtensionRemoveHandler(extensionRegistry),
                 OperationEntry.Flag.RESTART_NONE, OperationEntry.Flag.RESTART_NONE);
         this.accessConstraints = SensitiveTargetAccessConstraintDefinition.EXTENSIONS.wrapAsList();
+        this.extensionRegistry = extensionRegistry;
+    }
+
+    @Override
+    public boolean registerByDefault() {
+        return false;
+    }
+
+    @Override
+    public Resource createResource(PathElement pathElement) throws OperationFailedException {
+        final String moduleName = pathElement.getValue();
+        return new ExtensionResource(moduleName, extensionRegistry);
     }
 
     @Override
