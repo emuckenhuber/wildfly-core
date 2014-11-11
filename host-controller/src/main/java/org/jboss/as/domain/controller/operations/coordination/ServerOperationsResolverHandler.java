@@ -155,10 +155,10 @@ public class ServerOperationsResolverHandler implements OperationStepHandler {
                                      final ModelNode localResult, final ModelNode overallResult) {
 
         ModelNode domainResult = hostControllerExecutionSupport.getFormattedDomainResult(localResult);
+        ModelNode serverOpsNode = overallResult.get(SERVER_OPERATIONS);
+
         overallResult.setEmptyObject();
         overallResult.get(DOMAIN_RESULTS).set(domainResult);
-
-        ModelNode serverOpsNode = overallResult.get(SERVER_OPERATIONS);
 
         // Group servers with the same ops together to save bandwidth
         final Map<ModelNode, Set<ServerIdentity>> bundled = new HashMap<ModelNode, Set<ServerIdentity>>();
