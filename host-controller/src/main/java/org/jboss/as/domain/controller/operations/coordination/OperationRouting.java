@@ -30,6 +30,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SER
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.STEPS;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -51,17 +52,17 @@ import org.jboss.dmr.ModelNode;
 class OperationRouting {
 
     static OperationRouting determineRouting(OperationContext context, ModelNode operation,
-                                             final LocalHostControllerInfo localHostControllerInfo) throws OperationFailedException {
+                                             final LocalHostControllerInfo localHostControllerInfo, Set<String> hostNames) throws OperationFailedException {
         final ImmutableManagementResourceRegistration rootRegistration = context.getRootResourceRegistration();
-        return determineRouting(operation, localHostControllerInfo, rootRegistration);
+        return determineRouting(operation, localHostControllerInfo, rootRegistration, hostNames);
     }
 
     private static OperationRouting determineRouting(final ModelNode operation, final LocalHostControllerInfo localHostControllerInfo,
-                                                     final ImmutableManagementResourceRegistration rootRegistration) throws OperationFailedException {
+                                                     final ImmutableManagementResourceRegistration rootRegistration, Set<String> hostNames) throws OperationFailedException {
         final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
         final String operationName = operation.require(OP).asString();
         final Set<OperationEntry.Flag> operationFlags = resolveOperationFlags(address, operationName, rootRegistration);
-        return determineRouting(operation, address, operationName, operationFlags, localHostControllerInfo, rootRegistration);
+        return determineRouting(operation, address, operationName, operationFlags, localHostControllerInfo, rootRegistration, hostNames);
     }
 
     private static Set<OperationEntry.Flag> resolveOperationFlags(final PathAddress address, final String operationName,
@@ -100,17 +101,31 @@ class OperationRouting {
                                                      final String operationName,
                                                      final Set<OperationEntry.Flag> operationFlags,
                                                      final LocalHostControllerInfo localHostControllerInfo,
-                                                     final ImmutableManagementResourceRegistration rootRegistration)
+                                                     final ImmutableManagementResourceRegistration rootRegistration,
+                                                     Set<String> hostNames)
                                                         throws OperationFailedException {
 
         OperationRouting routing = null;
 
-        String targetHost = null;
+        Set<String> targetHost = null;
         boolean compositeOp = false;
         if (address.size() > 0) {
             PathElement first = address.getElement(0);
-            if (HOST.equals(first.getKey()) && !first.isMultiTarget()) {
-                targetHost = first.getValue();
+            if (HOST.equals(first.getKey())) {
+                if (first.isMultiTarget()) {
+                    if (first.isWildcard()) {
+                        targetHost = new HashSet<>();
+                        targetHost.addAll(hostNames);
+                        targetHost.add(localHostControllerInfo.getLocalHostName());
+                    } else {
+                        targetHost = new HashSet<>();
+                        for (final String host : first.getSegments()) {
+                            targetHost.add(host);
+                        }
+                    }
+                } else {
+                    targetHost = Collections.singleton(first.getValue());
+                }
             }
         } else {
             compositeOp = COMPOSITE.equals(operationName);
@@ -140,7 +155,7 @@ class OperationRouting {
                 Set<String> allHosts = new HashSet<String>();
                 boolean fwdToAllHosts = false;
                 for (ModelNode step : operation.get(STEPS).asList()) {
-                    OperationRouting stepRouting = determineRouting(step, localHostControllerInfo, rootRegistration);
+                    OperationRouting stepRouting = determineRouting(step, localHostControllerInfo, rootRegistration, hostNames);
                     if (stepRouting.isTwoStep()) {
                         // Make sure we don't loose the information that we have to execute the operation on all hosts
                         fwdToAllHosts = fwdToAllHosts || stepRouting.getHosts().isEmpty();
@@ -180,20 +195,18 @@ class OperationRouting {
 
     }
 
-    private final String singleHost;
     private final Set<String> hosts = new HashSet<String>();
     private final boolean twoStep;
 
     /** Constructor for domain-level requests where we are not master */
     private OperationRouting() {
         twoStep = false;
-        singleHost = null;
+        // singleHost = null;
     }
 
     /** Constructor for multi-host ops */
     private OperationRouting(final boolean twoStep) {
         this.twoStep = twoStep;
-        singleHost = null;
     }
 
     /**
@@ -205,7 +218,17 @@ class OperationRouting {
     public OperationRouting(String host, boolean twoStep) {
         this.hosts.add(host);
         this.twoStep = twoStep;
-        singleHost = host;
+    }
+
+    /**
+     * Constructor for a request routed to a single host
+     *
+     * @param hosts the name of the hosts
+     * @param twoStep true if a two-step execution is needed
+     */
+    public OperationRouting(Set<String> hosts, boolean twoStep) {
+        this.hosts.addAll(hosts);
+        this.twoStep = twoStep;
     }
 
     /**
@@ -216,7 +239,6 @@ class OperationRouting {
     public OperationRouting(final Collection<String> hosts) {
         this.hosts.addAll(hosts);
         this.twoStep = true;
-        singleHost = null;
     }
 
     public Set<String> getHosts() {
@@ -224,7 +246,7 @@ class OperationRouting {
     }
 
     public String getSingleHost() {
-        return singleHost;
+        return hosts.size() == 1 ? hosts.iterator().next() : null;
     }
 
     public boolean isTwoStep() {
@@ -232,21 +254,16 @@ class OperationRouting {
     }
 
     public boolean isLocalOnly(final String localHostName) {
-        if (singleHost != null) {
-            return localHostName.equals(singleHost);
-        } else {
-            return hosts.size() == 1 && hosts.contains(localHostName);
-        }
+        return hosts.size() == 1 && hosts.contains(localHostName);
     }
 
     public boolean isLocalCallNeeded(final String localHostName) {
-        return localHostName.equals(singleHost) || hosts.size() == 0 || hosts.contains(localHostName);
+        return hosts.size() == 0 || hosts.contains(localHostName);
     }
 
     @Override
     public String toString() {
         return "OperationRouting{" +
-                "singleHost='" + singleHost + '\'' +
                 ", hosts=" + hosts +
                 ", twoStep=" + twoStep +
                 '}';

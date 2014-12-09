@@ -130,6 +130,7 @@ public class DomainOperationContext {
         ModelNode result;
         ServerIdentity id = new ServerIdentity(hostName, null, serverName);
         ModelNode serverResult = getServerResults().get(id);
+        System.out.println(serverName + " server results " + getServerResults());
         if (serverResult == null) {
             return null;
         }

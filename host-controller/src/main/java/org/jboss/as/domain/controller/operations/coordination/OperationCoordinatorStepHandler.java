@@ -81,7 +81,9 @@ public class OperationCoordinatorStepHandler {
     void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
 
         // Determine routing
-        OperationRouting routing = OperationRouting.determineRouting(context, operation, localHostControllerInfo);
+        OperationRouting routing = OperationRouting.determineRouting(context, operation, localHostControllerInfo, hostProxies.keySet());
+
+        System.out.println(routing);
 
         if (!localHostControllerInfo.isMasterDomainController()
                 && !routing.isLocalOnly(localHostControllerInfo.getLocalHostName())) {
@@ -166,7 +168,8 @@ public class OperationCoordinatorStepHandler {
         String localHostName = localHostControllerInfo.getLocalHostName();
         if (routing.isLocalCallNeeded(localHostName)) {
             ModelNode localResponse = overallContext.getCoordinatorResult();
-            localSlaveHandler.addSteps(context, slaveOp.clone(), localResponse, false);
+            final ModelNode op = AddressUtils.processOperation(slaveOp, localHostName);
+            localSlaveHandler.addSteps(context, op, localResponse, false);
         }
 
         if (localHostControllerInfo.isMasterDomainController()) {
@@ -175,6 +178,8 @@ public class OperationCoordinatorStepHandler {
             Set<String> remoteHosts = new HashSet<String>(routing.getHosts());
             boolean global = remoteHosts.size() == 0;
             remoteHosts.remove(localHostName);
+
+            System.out.println(remoteHosts);
 
             if (remoteHosts.size() > 0 || global) {
                 // Lock the controller to ensure there are no topology changes mid-op.

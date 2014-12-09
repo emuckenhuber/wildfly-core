@@ -188,20 +188,31 @@ public class DomainFinalResultHandler implements OperationStepHandler {
             }
         } else if (provider.getServer() == null) {
             String hostName = provider.getHost();
-            boolean forMaster = hostName.equals(domainOperationContext.getLocalHostInfo().getLocalHostName());
-            ModelNode hostResponse;
             if (hostName.equals("*")) {
-                hostResponse = domainOperationContext.getCoordinatorResult();
+                result = new ModelNode();
+                System.out.println(domainOperationContext.getHostControllerResults().keySet());
+                for (final Map.Entry<String, ModelNode> hostEntry : domainOperationContext.getHostControllerResults().entrySet()) {
+                    final String host = hostEntry.getKey();
+                    boolean forMaster = host.equals(domainOperationContext.getLocalHostInfo().getLocalHostName());
+                    ModelNode hostResponse = forMaster ? domainOperationContext.getCoordinatorResult() : domainOperationContext.getHostControllerResults().get(hostName);
+                    System.out.println(host + " entry " + hostResponse);
+                    if (hostResponse != null) {
+                        result.add(getHostControllerResult(hostResponse, stepLabels));
+                    }
+                }
+                System.out.println(hostName + " " + result);
             } else {
-                hostResponse = forMaster ? domainOperationContext.getCoordinatorResult()  : domainOperationContext.getHostControllerResults().get(hostName);
+                boolean forMaster = hostName.equals(domainOperationContext.getLocalHostInfo().getLocalHostName());
+                ModelNode hostResponse = forMaster ? domainOperationContext.getCoordinatorResult()  : domainOperationContext.getHostControllerResults().get(hostName);
+                result = getHostControllerResult(hostResponse, stepLabels);
             }
-            result = getHostControllerResult(hostResponse, stepLabels);
         } else {
-            if (provider.getServer().equals("*")) {
-                result = getHostControllerResult(domainOperationContext.getCoordinatorResult(), stepLabels);
-            } else {
-                result = domainOperationContext.getServerResult(provider.getHost(), provider.getServer(), stepLabels);
-            }
+//            if (provider.getServer().equals("*")) {
+//                result = getHostControllerResult(domainOperationContext.getCoordinatorResult(), stepLabels);
+//            } else {
+//                result = domainOperationContext.getServerResult(provider.getHost(), provider.getServer(), stepLabels);
+//            }
+            result = domainOperationContext.getServerResult(provider.getHost(), provider.getServer(), stepLabels);
         }
 
         return result == null ? new ModelNode() : result;

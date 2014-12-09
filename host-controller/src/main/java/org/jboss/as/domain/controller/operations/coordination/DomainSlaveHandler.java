@@ -98,7 +98,7 @@ public class DomainSlaveHandler implements OperationStepHandler {
             final String host = entry.getKey();
             final TransformingProxyController proxyController = (TransformingProxyController) entry.getValue();
             List<DomainOperationTransformer> transformers = context.getAttachment(OperationAttachments.SLAVE_SERVER_OPERATION_TRANSFORMERS);
-            ModelNode op = operation;
+            ModelNode op = AddressUtils.processOperation(operation, entry.getKey());
             if(transformers != null) {
                 for(final DomainOperationTransformer transformer : transformers) {
                     op = transformer.transform(context, op);
@@ -230,6 +230,7 @@ public class DomainSlaveHandler implements OperationStepHandler {
                 try {
                     final OperationResponse finalResponse = patient ? future.get() : future.get(0, TimeUnit.MILLISECONDS);
                     final ModelNode transformedResult = request.transformResult(finalResponse.getResponseNode());
+                    System.out.println(transformedResult);
                     domainOperationContext.addHostControllerResult(hostName, transformedResult);
 
                     // Make sure any streams associated with the remote response are properly
